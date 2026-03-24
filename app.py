@@ -109,7 +109,7 @@ def create_deposit():
             "payerDocument": "00000000000",
             "transactionId": transaction_id,
             "description": "Adicionar Saldo",
-            "projectWebhook": os.environ.get("WEBHOOK_URL", "https://chk-yd8u.onrender.com/api/webhook/misticpay")
+            "projectWebhook": os.environ.get("WEBHOOK_URL", "https://checker-db9i.onrender.com/api/webhook/misticpay")
         }
         
         url = f"{MISTICPAY_API_URL}/transactions/create"
@@ -256,24 +256,31 @@ def handle_misticpay_webhook():
 
 @app.route('/api/check_card', methods=['POST'])
 def check_card():
+    import traceback
     if 'user_id' not in session: return jsonify({"success": False, "message": "Nao autorizado"}), 401
 
     data = request.json
     card_line = data.get('card', '')
     
+    print(f"[check_card] Recebido card: {card_line[:6]}****")
+
     if not card_line:
         return jsonify({"success": False, "message": "Cartão inválido", "status": "DIE"}), 400
 
     user_id = session['user_id']
     
     try:
+        print(f"[check_card] Buscando saldo do user {user_id}")
         profile = supabase.table('profiles').select('balance').eq('id', user_id).execute().data[0]
         balance = float(profile['balance'])
+        print(f"[check_card] Saldo: {balance}")
         
         if balance <= 1.0:
             return jsonify({"success": False, "message": "Saldo insuficiente (Mínimo R$ 1.00 para checar)", "status": "DIE"}), 403
-            
+        
+        print(f"[check_card] Iniciando checker...")
         result = checker_service.checker_instance.test_card(card_line)
+        print(f"[check_card] Resultado: {result}")
         
         if "ERROR" in result:
             return jsonify({"success": False, "message": result, "status": "DIE"}), 500
@@ -285,6 +292,8 @@ def check_card():
         return jsonify({"success": True, "status": result, "message": "Verificado com sucesso"})
         
     except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[check_card] ERRO COMPLETO:\n{tb}")
         return jsonify({"success": False, "message": str(e), "status": "DIE"}), 500
 
 def open_browser():
