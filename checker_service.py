@@ -18,35 +18,30 @@ class DominosChecker:
     def start_session(self):
         if self.driver is not None:
             return True
-            
+
+        import shutil, subprocess
+
+        # Log de diagnóstico
+        print("[Checker] === Diagnóstico do ambiente ===")
+        for bin in ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'chromedriver']:
+            path = shutil.which(bin)
+            print(f"[Checker]   {bin}: {path}")
+        try:
+            out = subprocess.check_output(['google-chrome', '--version'], stderr=subprocess.STDOUT).decode().strip()
+            print(f"[Checker]   Chrome version: {out}")
+        except Exception as e:
+            print(f"[Checker]   Chrome version check failed: {e}")
+
         options = webdriver.ChromeOptions()
         options.add_argument('--headless=new')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-extensions')
-        options.add_argument('--disable-plugins')
         options.add_argument('--single-process')
-        options.add_argument('--disable-background-networking')
-        options.add_argument('--disable-breakpad')
-        options.add_argument('--disable-chrome-extensions')
-        options.add_argument('--disable-client-side-phishing-detection')
-        options.add_argument('--disable-component-extensions-with-background-pages')
-        options.add_argument('--disable-default-apps')
-        options.add_argument('--disable-hang-monitor')
-        options.add_argument('--disable-ipc-flooding-protection')
-        options.add_argument('--disable-popup-blocking')
-        options.add_argument('--disable-prompt-on-repost')
-        options.add_argument('--disable-renderer-backgrounding')
-        options.add_argument('--metrics-recording-only')
-        options.add_argument('--mute-audio')
         options.add_argument('--no-default-browser-check')
         options.add_argument('--no-first-run')
-        options.add_argument('--safebrowsing-disable-auto-update')
-        options.add_argument('--enable-automation')
-        
-        # Detectar o caminho do Chrome automaticamente
-        import shutil
+
         chrome_path = (
             shutil.which('google-chrome') or
             shutil.which('google-chrome-stable') or
@@ -55,18 +50,17 @@ class DominosChecker:
         )
         if chrome_path:
             options.binary_location = chrome_path
-            print(f"[Checker] Chrome encontrado em: {chrome_path}")
+            print(f"[Checker] Usando Chrome: {chrome_path}")
         else:
-            print("[Checker] AVISO: Chrome não encontrado no PATH, usando padrão")
-        
+            print("[Checker] ERRO: Chrome não encontrado!")
+            return False
+
         try:
-            # Tentar usar chromedriver no PATH primeiro
             self.driver = webdriver.Chrome(options=options)
             self.wait = WebDriverWait(self.driver, 15)
             print("[Checker] Chrome inicializado com sucesso")
         except Exception as e:
             print(f"[Checker] Erro ao inicializar Chrome: {e}")
-            # Se falhar, retornar erro
             self.driver = None
             return False
         
