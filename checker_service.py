@@ -45,11 +45,19 @@ class DominosChecker:
         options.add_argument('--safebrowsing-disable-auto-update')
         options.add_argument('--enable-automation')
         
-        # Se estiver em produção (Render/Docker), usar o Chromium do sistema
-        if os.environ.get('RENDER', False):
-            # Em Debian, o Chromium está em /usr/bin/chromium
-            options.binary_location = '/usr/bin/chromium'
-            print(f"[Checker] Usando Chromium em: {options.binary_location}")
+        # Detectar o caminho do Chrome automaticamente
+        import shutil
+        chrome_path = (
+            shutil.which('google-chrome') or
+            shutil.which('google-chrome-stable') or
+            shutil.which('chromium') or
+            shutil.which('chromium-browser')
+        )
+        if chrome_path:
+            options.binary_location = chrome_path
+            print(f"[Checker] Chrome encontrado em: {chrome_path}")
+        else:
+            print("[Checker] AVISO: Chrome não encontrado no PATH, usando padrão")
         
         try:
             # Tentar usar chromedriver no PATH primeiro
