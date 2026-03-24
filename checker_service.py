@@ -45,16 +45,20 @@ class DominosChecker:
         options.add_argument('--safebrowsing-disable-auto-update')
         options.add_argument('--enable-automation')
         
-        # Se estiver em produção (Render), usar o Chromium do sistema
+        # Se estiver em produção (Render/Docker), usar o Chromium do sistema
         if os.environ.get('RENDER', False):
-            # Em Debian/Linux, o Chromium está em /usr/bin/chromium
+            # Em Debian, o Chromium está em /usr/bin/chromium
             options.binary_location = '/usr/bin/chromium'
+            print(f"[Checker] Usando Chromium em: {options.binary_location}")
         
         try:
+            # Tentar usar chromedriver no PATH primeiro
             self.driver = webdriver.Chrome(options=options)
             self.wait = WebDriverWait(self.driver, 15)
+            print("[Checker] Chrome inicializado com sucesso")
         except Exception as e:
             print(f"[Checker] Erro ao inicializar Chrome: {e}")
+            # Se falhar, retornar erro
             self.driver = None
             return False
         
