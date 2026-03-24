@@ -47,7 +47,8 @@ class DominosChecker:
         
         # Se estiver em produção (Render), usar o Chromium do sistema
         if os.environ.get('RENDER', False):
-            options.binary_location = '/usr/bin/chromium-browser'
+            # Em Debian/Linux, o Chromium está em /usr/bin/chromium
+            options.binary_location = '/usr/bin/chromium'
         
         try:
             self.driver = webdriver.Chrome(options=options)
