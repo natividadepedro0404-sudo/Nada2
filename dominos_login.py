@@ -117,7 +117,7 @@ def login_dominos(email, password):
                 ))
                 driver.execute_script("arguments[0].click();", btn_salvar)
                 
-                time.sleep(5)
+                time.sleep(7)
                 
                 try:
                     cpf_ainda = driver.find_element(By.XPATH, "//input[@placeholder='CPF do titular']")
