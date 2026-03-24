@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: cc-checker
+    runtime: docker
+    plan: standard
+    region: sfo
+    repo: https://github.com/seu-usuario/seu-repo  # Mude para seu repositório
+    dockerfile: ./Dockerfile
+    dockerComposeBuild:
+      enabled: true
+    port: 4000
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: RENDER
+        value: "true"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: MISTICPAY_CLIENT_ID
+        sync: false
+      - key: MISTICPAY_CLIENT_SECRET
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: DOMINOS_EMAIL
+        sync: false
+      - key: DOMINOS_PASSWORD
+        sync: false
