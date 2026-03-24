@@ -28,23 +28,36 @@ class DominosChecker:
         options.add_argument('--no-first-run')
         options.add_argument('--window-size=1920,1080')
 
-        # Tentar usar webdriver-manager primeiro, depois fallback para PATH
-        try:
-            from webdriver_manager.chrome import ChromeDriverManager
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=options)
-            print("[Checker] Chrome inicializado via webdriver-manager")
-            return driver
-        except Exception as e1:
-            print(f"[Checker] webdriver-manager falhou: {e1}, tentando PATH...")
+        # Usar Chromium instalado pelo sistema (Railway/Docker)
+        chromium_paths = [
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/google-chrome',
+        ]
+        for path in chromium_paths:
+            if os.path.exists(path):
+                options.binary_location = path
+                print(f"[Checker] Usando binário: {path}")
+                break
 
-        try:
-            driver = webdriver.Chrome(options=options)
-            print("[Checker] Chrome inicializado via PATH")
-            return driver
-        except Exception as e2:
-            print(f"[Checker] PATH também falhou: {e2}")
-            return None
+        chromedriver_paths = [
+            '/usr/bin/chromedriver',
+            '/usr/lib/chromium/chromedriver',
+            '/usr/lib/chromium-browser/chromedriver',
+        ]
+
+        for path in chromedriver_paths:
+            if os.path.exists(path):
+                try:
+                    service = Service(path)
+                    driver = webdriver.Chrome(service=service, options=options)
+                    print(f"[Checker] Chromium inicializado via {path}")
+                    return driver
+                except Exception as e:
+                    print(f"[Checker] Falhou com {path}: {e}")
+
+        print("[Checker] Nenhum chromedriver encontrado!")
+        return None
 
     def start_session(self):
         if self.driver is not None:
