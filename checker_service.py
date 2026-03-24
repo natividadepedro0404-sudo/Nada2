@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.service import Service
 
 class DominosChecker:
     def __init__(self, email, password):
@@ -15,23 +16,7 @@ class DominosChecker:
         self.wait = None
         self.lock = threading.Lock()
         
-    def start_session(self):
-        if self.driver is not None:
-            return True
-
-        import shutil, subprocess
-
-        # Log de diagnóstico
-        print("[Checker] === Diagnóstico do ambiente ===")
-        for bin in ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'chromedriver']:
-            path = shutil.which(bin)
-            print(f"[Checker]   {bin}: {path}")
-        try:
-            out = subprocess.check_output(['google-chrome', '--version'], stderr=subprocess.STDOUT).decode().strip()
-            print(f"[Checker]   Chrome version: {out}")
-        except Exception as e:
-            print(f"[Checker]   Chrome version check failed: {e}")
-
+    def _get_driver(self):
         options = webdriver.ChromeOptions()
         options.add_argument('--headless=new')
         options.add_argument('--no-sandbox')
@@ -41,31 +26,40 @@ class DominosChecker:
         options.add_argument('--single-process')
         options.add_argument('--no-default-browser-check')
         options.add_argument('--no-first-run')
+        options.add_argument('--window-size=1920,1080')
 
-        chrome_path = (
-            shutil.which('google-chrome') or
-            shutil.which('google-chrome-stable') or
-            shutil.which('chromium') or
-            shutil.which('chromium-browser')
-        )
-        if chrome_path:
-            options.binary_location = chrome_path
-            print(f"[Checker] Usando Chrome: {chrome_path}")
-        else:
-            print("[Checker] ERRO: Chrome não encontrado!")
-            return False
+        # Tentar usar webdriver-manager primeiro, depois fallback para PATH
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
+            print("[Checker] Chrome inicializado via webdriver-manager")
+            return driver
+        except Exception as e1:
+            print(f"[Checker] webdriver-manager falhou: {e1}, tentando PATH...")
 
         try:
-            self.driver = webdriver.Chrome(options=options)
-            self.wait = WebDriverWait(self.driver, 15)
-            print("[Checker] Chrome inicializado com sucesso")
-        except Exception as e:
-            print(f"[Checker] Erro ao inicializar Chrome: {e}")
-            self.driver = None
+            driver = webdriver.Chrome(options=options)
+            print("[Checker] Chrome inicializado via PATH")
+            return driver
+        except Exception as e2:
+            print(f"[Checker] PATH também falhou: {e2}")
+            return None
+
+    def start_session(self):
+        if self.driver is not None:
+            return True
+
+        print("[Checker] Iniciando sessão Chrome...")
+        self.driver = self._get_driver()
+        if not self.driver:
+            print("[Checker] ERRO: Não foi possível inicializar o Chrome")
             return False
+
+        self.wait = WebDriverWait(self.driver, 15)
         
         try:
-            print("[Checker] Acessando login...")
+            print("[Checker] Acessando login Dominos...")
             self.driver.get("https://www.dominos.com.br/login")
             
             btn_login_senha = self.wait.until(EC.element_to_be_clickable(
@@ -177,6 +171,12 @@ class DominosChecker:
                     
             except Exception as ex:
                 print(f"[Checker] Erro no teste do {numero}: {ex}")
+                # Resetar sessão para próxima tentativa
+                try:
+                    self.driver.quit()
+                except:
+                    pass
+                self.driver = None
                 return "DIE"
 
     def stop_session(self):
