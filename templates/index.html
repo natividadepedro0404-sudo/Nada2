@@ -271,32 +271,43 @@
             document.getElementById('statTested').textContent = statData.total;
         }
 
-        // Checker Loop OTIMIZADO
+        // Checker Loop OTIMIZADO - Lotes Sequenciais (3 em 3)
         startBtn.addEventListener('click', async () => {
             const lines = cardInput.value.split('\n').filter(l => l.trim().length > 0);
             if(lines.length === 0) return alert("Insira ao menos um cartão!");
             if(currentBalance <= 1) return alert("Saldo insuficiente! Adicione crédito.");
 
             isChecking = true;
+            statData = { live: 0, die: 0, total: 0 };
+            document.getElementById('statLive').textContent = 0;
+            document.getElementById('statDie').textContent = 0;
+            document.getElementById('statTested').textContent = 0;
+            
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
             cardInput.disabled = true;
             
             if(logsPanel.innerHTML.includes("Aguardando")) logsPanel.innerHTML = '';
-            appendLog(`Iniciando teste paralelo de ${lines.length} cartões (Limite: 3 simultâneos)...`, 'INFO');
+            appendLog(`Iniciando teste de ${lines.length} cartões em lotes de 3...`, 'INFO');
 
-            const CONCURRENCY_LIMIT = 6;
-            let currentIndex = 0;
-
-            async function checkWorker() {
-                while (currentIndex < lines.length && isChecking) {
-                    const cardIndex = currentIndex++;
-                    const cardLine = lines[cardIndex];
+            const BATCH_SIZE = 3;
+            
+            for (let i = 0; i < lines.length; i += BATCH_SIZE) {
+                if (!isChecking) break;
+                
+                const currentBatch = lines.slice(i, i + BATCH_SIZE);
+                const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+                const totalBatches = Math.ceil(lines.length / BATCH_SIZE);
+                
+                appendLog(`Processando lote ${batchNum}/${totalBatches}...`, 'INFO');
+                
+                const batchPromises = currentBatch.map(async (cardLine, idxInBatch) => {
+                    const cardIndex = i + idxInBatch;
                     
                     if (currentBalance <= 1) {
-                        appendLog("Saldo zerado! Parando checagem...", "ERROR");
+                        appendLog("Saldo zerado! Abortando lote...", "ERROR");
                         isChecking = false;
-                        break;
+                        return;
                     }
 
                     appendLog(`[${cardIndex+1}/${lines.length}] Testando: ${cardLine.substring(0,6)}...`, 'INFO');
@@ -315,22 +326,20 @@
                         } else if (data.status === 'DIE') {
                             appendLog(`[DIE] ${cardLine} - ${data.message || ''}`, 'DIE');
                         } else {
-                            appendLog(`Erro: ${data.message}`, 'ERROR');
+                            appendLog(`Erro no card ${cardLine.substring(0,6)}: ${data.message}`, 'ERROR');
                         }
                     } catch(e) {
-                        appendLog(`Erro de conexão com o servidor`, 'ERROR');
+                        appendLog(`Erro de conexão ao verificar ${cardLine.substring(0,6)}`, 'ERROR');
                     }
+                });
+
+                await Promise.all(batchPromises);
+                
+                // Pequeno delay entre lotes para estabilidade
+                if (isChecking && i + BATCH_SIZE < lines.length) {
+                    await new Promise(r => setTimeout(r, 1000));
                 }
             }
-
-            // Inicia os workers em paralelo
-            const poolSize = Math.min(CONCURRENCY_LIMIT, lines.length);
-            const workers = [];
-            for (let i = 0; i < poolSize; i++) {
-                workers.push(checkWorker());
-            }
-            
-            await Promise.all(workers);
 
             isChecking = false;
             stopBtn.classList.add('hidden');
