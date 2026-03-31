@@ -275,10 +275,12 @@ def check_card_vivara(email, password, card_line):
 
         if is_die:
             print(f"[DIE] {numero}")
+            driver.save_screenshot(f"die_{numero}.png")
             time.sleep(5) # Pausa final para o usuário ver
             return False
         else:
             print(f"[LIVE-?] {numero} (Não detectamos erro em 15s)")
+            driver.save_screenshot(f"check_{numero}.png")
             time.sleep(5) # Pausa final para o usuário ver
             return True
 
