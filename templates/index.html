@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CC Checker Pro - Dashboard</title>
+    <title>CC Checker - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -14,82 +15,109 @@
             color: #f8fafc;
             min-height: 100vh;
         }
+
         .glass-panel {
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
+
         .glass-input {
             background: rgba(15, 23, 42, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.05);
             color: #e2e8f0;
             transition: all 0.3s ease;
         }
+
         .glass-input:focus {
             border-color: #8b5cf6;
             outline: none;
             box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
         }
+
         .btn-primary {
             background: linear-gradient(to right, #8b5cf6, #6d28d9);
             transition: all 0.3s ease;
         }
+
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.4);
         }
+
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         .btn-outline {
             border: 1px solid rgba(139, 92, 246, 0.5);
             color: #c4b5fd;
             transition: all 0.3s ease;
         }
+
         .btn-outline:hover {
             background: rgba(139, 92, 246, 0.1);
         }
+
         .log-box {
             font-family: monospace;
             background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             max-height: 300px;
             overflow-y: auto;
         }
-        .live-text { color: #4ade80; }
-        .die-text { color: #f87171; }
-        
+
+        .live-text {
+            color: #4ade80;
+        }
+
+        .die-text {
+            color: #f87171;
+        }
+
         /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
             z-index: 50;
-            align-items: center; justify-content: center;
+            align-items: center;
+            justify-content: center;
         }
-        .modal.active { display: flex; }
+
+        .modal.active {
+            display: flex;
+        }
     </style>
 </head>
+
 <body class="pb-12 text-slate-200">
     <!-- Navbar -->
     <nav class="glass-panel sticky top-0 z-40 border-b border-white/5 py-4">
         <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-tr from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                <div
+                    class="w-10 h-10 bg-gradient-to-tr from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
                     <i class="fa-solid fa-shield-halved text-white"></i>
                 </div>
-                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-300">CC Checker</h1>
+                <h1
+                    class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-300">
+                    Vivara CC Checker</h1>
             </div>
             <div class="flex items-center gap-6">
                 <div class="text-right">
                     <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Saldo Atual</p>
                     <p class="text-lg font-bold text-emerald-400" id="balanceDisplay">R$ 0.00</p>
                 </div>
-                <button onclick="openDepositModal()" class="btn-primary px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2">
+                <button onclick="openDepositModal()"
+                    class="btn-primary px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2">
                     <i class="fa-brands fa-pix"></i> Adicionar
                 </button>
                 <button id="logoutBtn" class="text-slate-400 hover:text-white transition-colors">
@@ -101,25 +129,29 @@
 
     <!-- Main Content -->
     <div class="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         <!-- Left Column: Checker Control -->
         <div class="lg:col-span-2 space-y-6">
             <div class="glass-panel p-6 rounded-2xl">
                 <h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
                     <i class="fa-solid fa-credit-card text-purple-400"></i> Interface do Checker
                 </h2>
-                <p class="text-sm text-slate-400 mb-4">Insira um cartão por linha no formato: <code>numero|mes|ano|cvv</code>. Cada cartão "LIVE" custa R$ 1,00.</p>
-                
-                <textarea id="cardInput" rows="8" class="glass-input w-full rounded-xl p-4 text-sm resize-none mb-4" placeholder="4000000000000000|01|2028|123..."></textarea>
-                
+                <p class="text-sm text-slate-400 mb-4">Insira um cartão por linha no formato:
+                    <code>numero|mes|ano|cvv</code>. Cada cartão "LIVE" custa R$ 1,00.</p>
+
+                <textarea id="cardInput" rows="8" class="glass-input w-full rounded-xl p-4 text-sm resize-none mb-4"
+                    placeholder="4000000000000000|01|2028|123..."></textarea>
+
                 <div class="flex justify-between items-center">
                     <div class="text-sm text-slate-400">
                         Total de linhas: <span id="linesCount" class="text-white font-mono">0</span>
                     </div>
-                    <button id="startBtn" class="btn-primary px-8 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-purple-500/20">
+                    <button id="startBtn"
+                        class="btn-primary px-8 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-purple-500/20">
                         <i class="fa-solid fa-play"></i> Iniciar Check
                     </button>
-                    <button id="stopBtn" class="bg-red-500/20 text-red-500 hover:bg-red-500/30 px-8 py-3 rounded-xl font-semibold flex items-center gap-2 transition-colors hidden">
+                    <button id="stopBtn"
+                        class="bg-red-500/20 text-red-500 hover:bg-red-500/30 px-8 py-3 rounded-xl font-semibold flex items-center gap-2 transition-colors hidden">
                         <i class="fa-solid fa-stop"></i> Parar
                     </button>
                 </div>
@@ -149,7 +181,8 @@
                     <h3 class="font-semibold text-sm flex items-center gap-2">
                         <i class="fa-solid fa-terminal text-indigo-400"></i> Output Log
                     </h3>
-                    <button onclick="document.getElementById('logsPanel').innerHTML=''" class="text-xs text-slate-500 hover:text-slate-300">
+                    <button onclick="document.getElementById('logsPanel').innerHTML=''"
+                        class="text-xs text-slate-500 hover:text-slate-300">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
@@ -166,18 +199,20 @@
             <button onclick="closeDepositModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark"></i>
             </button>
-            
+
             <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
                 <i class="fa-brands fa-pix text-emerald-400"></i> Adicionar Saldo
             </h2>
             <p class="text-sm text-slate-400 mb-6">Mínimo R$ 10,00 - Máximo R$ 300,00</p>
-            
+
             <div id="pixForm" class="space-y-4">
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-slate-400 font-medium">R$</span>
-                    <input type="number" id="depositAmount" min="10" max="300" class="glass-input w-full pl-10 pr-4 py-3 rounded-xl" placeholder="50.00">
+                    <input type="number" id="depositAmount" min="10" max="300"
+                        class="glass-input w-full pl-10 pr-4 py-3 rounded-xl" placeholder="50.00">
                 </div>
-                <button onclick="generatePix()" class="btn-primary w-full py-3 rounded-xl font-semibold shadow-lg shadow-purple-500/20">
+                <button onclick="generatePix()"
+                    class="btn-primary w-full py-3 rounded-xl font-semibold shadow-lg shadow-purple-500/20">
                     Gerar Pix
                 </button>
             </div>
@@ -189,12 +224,14 @@
                 </div>
                 <p class="text-xs text-slate-400 mb-2">Pix Copia e Cola:</p>
                 <div class="flex w-full gap-2">
-                    <input type="text" id="pixCopia" readonly class="glass-input w-full text-xs p-2 rounded text-slate-300">
+                    <input type="text" id="pixCopia" readonly
+                        class="glass-input w-full text-xs p-2 rounded text-slate-300">
                     <button onclick="copyPix()" class="btn-outline px-3 rounded flex items-center justify-center">
                         <i class="fa-regular fa-copy"></i>
                     </button>
                 </div>
-                <p class="text-xs text-yellow-400 mt-4 text-center animate-pulse"><i class="fa-solid fa-circle-notch fa-spin"></i> Aguardando pagamento...</p>
+                <p class="text-xs text-yellow-400 mt-4 text-center animate-pulse"><i
+                        class="fa-solid fa-circle-notch fa-spin"></i> Aguardando pagamento...</p>
             </div>
         </div>
     </div>
@@ -215,7 +252,7 @@
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const logsPanel = document.getElementById('logsPanel');
-        
+
         // Init
         document.addEventListener('DOMContentLoaded', fetchBalance);
 
@@ -227,8 +264,8 @@
 
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
-             await fetch('/api/auth/logout', { method: 'POST' });
-             window.location.href = '/login';
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
         });
 
         // Fetch Balance
@@ -236,7 +273,7 @@
             try {
                 const res = await fetch('/api/user/balance');
                 const data = await res.json();
-                if(data.success) {
+                if (data.success) {
                     currentBalance = data.balance;
                     balanceDisplay.textContent = `R$ ${currentBalance.toFixed(2)}`;
                 }
@@ -245,8 +282,8 @@
 
         function appendLog(text, status) {
             const div = document.createElement('div');
-            const time = new Date().toLocaleTimeString('pt-BR', {hour12: false});
-            
+            const time = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+
             let colorCls = 'text-slate-300';
             if (status === 'LIVE') colorCls = 'live-text font-bold';
             if (status === 'DIE') colorCls = 'die-text';
@@ -255,17 +292,17 @@
 
             // Extract partial card if length allows
             let displayMsg = text;
-            
+
             div.className = `py-1 border-b border-white/5 animate-fade-in ${colorCls}`;
             div.innerHTML = `<span class="text-slate-500 text-[10px] mr-2">[${time}]</span> ${displayMsg}`;
-            
+
             logsPanel.appendChild(div);
             logsPanel.scrollTop = logsPanel.scrollHeight;
-            
+
             // update stats
-            if(status === 'LIVE') { statData.live++; statData.total++; }
-            if(status === 'DIE') { statData.die++; statData.total++; }
-            
+            if (status === 'LIVE') { statData.live++; statData.total++; }
+            if (status === 'DIE') { statData.die++; statData.total++; }
+
             document.getElementById('statLive').textContent = statData.live;
             document.getElementById('statDie').textContent = statData.die;
             document.getElementById('statTested').textContent = statData.total;
@@ -274,71 +311,68 @@
         // Checker Loop OTIMIZADO - Lotes Sequenciais (3 em 3)
         startBtn.addEventListener('click', async () => {
             const lines = cardInput.value.split('\n').filter(l => l.trim().length > 0);
-            if(lines.length === 0) return alert("Insira ao menos um cartão!");
-            if(currentBalance <= 1) return alert("Saldo insuficiente! Adicione crédito.");
+            if (lines.length === 0) return alert("Insira ao menos um cartão!");
+            if (currentBalance <= 1) return alert("Saldo insuficiente! Adicione crédito.");
 
             isChecking = true;
             statData = { live: 0, die: 0, total: 0 };
             document.getElementById('statLive').textContent = 0;
             document.getElementById('statDie').textContent = 0;
             document.getElementById('statTested').textContent = 0;
-            
+
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
             cardInput.disabled = true;
-            
-            if(logsPanel.innerHTML.includes("Aguardando")) logsPanel.innerHTML = '';
-            appendLog(`Iniciando teste de ${lines.length} cartões em lotes de 3...`, 'INFO');
 
-            const BATCH_SIZE = 5;
-            
+            if (logsPanel.innerHTML.includes("Aguardando")) logsPanel.innerHTML = '';
+            appendLog(`Iniciando teste de ${lines.length} cartões em lotes de 10...`, 'INFO');
+
+            const BATCH_SIZE = 10;
+
             for (let i = 0; i < lines.length; i += BATCH_SIZE) {
                 if (!isChecking) break;
-                
+
                 const currentBatch = lines.slice(i, i + BATCH_SIZE);
                 const batchNum = Math.floor(i / BATCH_SIZE) + 1;
                 const totalBatches = Math.ceil(lines.length / BATCH_SIZE);
-                
+
                 appendLog(`Processando lote ${batchNum}/${totalBatches}...`, 'INFO');
-                
+
                 const batchPromises = currentBatch.map(async (cardLine, idxInBatch) => {
                     const cardIndex = i + idxInBatch;
-                    
+
                     if (currentBalance <= 1) {
                         appendLog("Saldo zerado! Abortando lote...", "ERROR");
                         isChecking = false;
                         return;
                     }
 
-                    appendLog(`[${cardIndex+1}/${lines.length}] Testando: ${cardLine.substring(0,6)}...`, 'INFO');
-                    
+                    appendLog(`[${cardIndex + 1}/${lines.length}] Testando: ${cardLine.substring(0, 6)}...`, 'INFO');
+
                     try {
                         const res = await fetch('/api/check_card', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({card: cardLine})
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ card: cardLine })
                         });
                         const data = await res.json();
-                        
-                        if(data.status === 'LIVE') {
+
+                        if (data.status === 'LIVE') {
                             appendLog(`[LIVE] ${cardLine}`, 'LIVE');
                             await fetchBalance();
                         } else if (data.status === 'DIE') {
                             appendLog(`[DIE] ${cardLine} - ${data.message || ''}`, 'DIE');
                         } else {
-                            appendLog(`Erro no card ${cardLine.substring(0,6)}: ${data.message}`, 'ERROR');
+                            appendLog(`Erro no card ${cardLine.substring(0, 6)}: ${data.message}`, 'ERROR');
                         }
-                    } catch(e) {
-                        appendLog(`Erro de conexão ao verificar ${cardLine.substring(0,6)}`, 'ERROR');
+                    } catch (e) {
+                        appendLog(`Erro de conexão ao verificar ${cardLine.substring(0, 6)}`, 'ERROR');
                     }
                 });
 
                 await Promise.all(batchPromises);
-                
-                // Pequeno delay entre lotes para estabilidade
-                if (isChecking && i + BATCH_SIZE < lines.length) {
-                    await new Promise(r => setTimeout(r, 1000));
-                }
+
+                // Sem delay forçado entre lotes para velocidade máxima
             }
 
             isChecking = false;
@@ -365,20 +399,20 @@
 
         async function generatePix() {
             const amount = document.getElementById('depositAmount').value;
-            if(!amount || amount < 10 || amount > 300) return alert("Valor deve ser entre R$ 10 e R$ 300.");
+            if (!amount || amount < 10 || amount > 300) return alert("Valor deve ser entre R$ 10 e R$ 300.");
 
             try {
                 const res = await fetch('/api/deposit', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({amount})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
                 });
                 const data = await res.json();
-                
-                if(data.success) {
+
+                if (data.success) {
                     document.getElementById('pixForm').classList.add('hidden');
                     document.getElementById('pixResult').classList.remove('hidden');
-                    
+
                     document.getElementById('qrCodeImg').src = data.qr_code_url;
                     document.getElementById('pixCopia').value = data.pix_code;
                     currentPaymentDbId = data.db_id;
@@ -386,7 +420,7 @@
                 } else {
                     alert(data.message);
                 }
-            } catch(e) { alert("Erro ao gerar pix."); }
+            } catch (e) { alert("Erro ao gerar pix."); }
         }
 
         function copyPix() {
@@ -399,15 +433,15 @@
 
         // DEV APENAS: Para o usuário testar o fluxo completo
         async function devApprovePix() {
-            if(!currentPaymentDbId) return;
+            if (!currentPaymentDbId) return;
             try {
                 const res = await fetch('/api/deposit/dev-approve', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ db_id: currentPaymentDbId, amount: currentPaymentAmount })
                 });
                 const data = await res.json();
-                if(data.success) {
+                if (data.success) {
                     alert("Pagamento Aprovado com Sucesso!");
                     closeDepositModal();
                     fetchBalance();
@@ -420,4 +454,5 @@
         }
     </script>
 </body>
+
 </html>
