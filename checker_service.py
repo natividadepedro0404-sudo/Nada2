@@ -221,5 +221,8 @@ class VivaraChecker:
         finally:
             driver.quit()
 
+# Alias para compatibilidade com versões anteriores
+DominosChecker = VivaraChecker
+
 # Instância global gerenciada pelo main.py
 checker_instance = None
