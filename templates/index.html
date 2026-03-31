@@ -271,7 +271,7 @@
             document.getElementById('statTested').textContent = statData.total;
         }
 
-        // Checker Loop
+        // Checker Loop OTIMIZADO
         startBtn.addEventListener('click', async () => {
             const lines = cardInput.value.split('\n').filter(l => l.trim().length > 0);
             if(lines.length === 0) return alert("Insira ao menos um cartão!");
@@ -283,40 +283,54 @@
             cardInput.disabled = true;
             
             if(logsPanel.innerHTML.includes("Aguardando")) logsPanel.innerHTML = '';
-            appendLog(`Iniciando teste de ${lines.length} cartões...`, 'INFO');
+            appendLog(`Iniciando teste paralelo de ${lines.length} cartões (Limite: 3 simultâneos)...`, 'INFO');
 
-            for(let i = 0; i < lines.length; i++) {
-                if(!isChecking) break;
-                
-                // Extra check balance
-                if(currentBalance <= 1) {
-                    appendLog("Saldo zerado! Parando checagem...", "ERROR");
-                    break;
-                }
+            const CONCURRENCY_LIMIT = 3;
+            let currentIndex = 0;
 
-                const cardLine = lines[i];
-                appendLog(`Testando: ${cardLine.substring(0,6)}...`, 'INFO');
-                
-                try {
-                    const res = await fetch('/api/check_card', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({card: cardLine})
-                    });
-                    const data = await res.json();
+            async function checkWorker() {
+                while (currentIndex < lines.length && isChecking) {
+                    const cardIndex = currentIndex++;
+                    const cardLine = lines[cardIndex];
                     
-                    if(data.status === 'LIVE') {
-                        appendLog(`[LIVE] ${cardLine}`, 'LIVE');
-                        await fetchBalance(); // atualiza interface com 1 real a menos
-                    } else if (data.status === 'DIE') {
-                        appendLog(`[DIE] ${cardLine} - ${data.message || ''}`, 'DIE');
-                    } else {
-                        appendLog(`Erro: ${data.message}`, 'ERROR');
+                    if (currentBalance <= 1) {
+                        appendLog("Saldo zerado! Parando checagem...", "ERROR");
+                        isChecking = false;
+                        break;
                     }
-                } catch(e) {
-                    appendLog(`Erro de conexão com o servidor`, 'ERROR');
+
+                    appendLog(`[${cardIndex+1}/${lines.length}] Testando: ${cardLine.substring(0,6)}...`, 'INFO');
+                    
+                    try {
+                        const res = await fetch('/api/check_card', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({card: cardLine})
+                        });
+                        const data = await res.json();
+                        
+                        if(data.status === 'LIVE') {
+                            appendLog(`[LIVE] ${cardLine}`, 'LIVE');
+                            await fetchBalance();
+                        } else if (data.status === 'DIE') {
+                            appendLog(`[DIE] ${cardLine} - ${data.message || ''}`, 'DIE');
+                        } else {
+                            appendLog(`Erro: ${data.message}`, 'ERROR');
+                        }
+                    } catch(e) {
+                        appendLog(`Erro de conexão com o servidor`, 'ERROR');
+                    }
                 }
             }
+
+            // Inicia os workers em paralelo
+            const poolSize = Math.min(CONCURRENCY_LIMIT, lines.length);
+            const workers = [];
+            for (let i = 0; i < poolSize; i++) {
+                workers.push(checkWorker());
+            }
+            
+            await Promise.all(workers);
 
             isChecking = false;
             stopBtn.classList.add('hidden');
