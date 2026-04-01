@@ -154,8 +154,8 @@ class VivaraChecker:
             fill_field("cardHolder", "cleomar born da silva")
             fill_field("cc-exp", validade)
             fill_field("cc-csc", cvv)
-            fill_field("documentType", "848.303.360-72")
-            fill_field("document", "26.078.465-5")
+            fill_field("documentType", "CPF")
+            fill_field("document", "84830336072")
             
             # 5. Salvar
             xpath_save = "//button[@type='submit'] | //button[contains(translate(., 'SALVAR NOVO CARTÃO', 'salvar novo cartão'), 'salvar novo cartão')]"
