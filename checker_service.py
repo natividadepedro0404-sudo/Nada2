@@ -16,7 +16,7 @@ class VivaraChecker:
     def _get_driver(self):
         """Cria e retorna uma instância do Chrome otimizada para velocidade e concorrência."""
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless=new') # Headless para o servidor
+        # options.add_argument('--headless=new') # Headless para o servidor
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
