@@ -111,6 +111,7 @@ class VivaraChecker:
             # 3. Navegação para Cartões
             # Esperamos o login ser processado olhando a URL ou um elemento da home
             wait.until(EC.url_contains("vivara.com.br"))
+            time.sleep(5) # Tempo extra para garantir que o login seja totalmente processado
             driver.get("https://www.vivara.com.br/api/io/account#/cards/new")
             
             if "login" in driver.current_url and "account" not in driver.current_url:
@@ -161,8 +162,8 @@ class VivaraChecker:
             xpath_save = "//button[@type='submit'] | //button[contains(translate(., 'SALVAR NOVO CARTÃO', 'salvar novo cartão'), 'salvar novo cartão')]"
             save_clicked = False
             try:
-                btn_salvar = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, xpath_save)))
-                time.sleep(1)
+                btn_salvar = WebDriverWait(driver, 40).until(EC.element_to_be_clickable((By.XPATH, xpath_save)))
+                time.sleep(6)
                 driver.execute_script("arguments[0].click();", btn_salvar)
                 save_clicked = True
             except:
@@ -184,7 +185,7 @@ class VivaraChecker:
             # 6. Verificação LIVE/DIE
             error_msg = "Falha ao autenticar o cartão. Verifique os dados do cartão e tente novamente."
             start_check = time.time()
-            while time.time() - start_check < 15:
+            while time.time() - start_check < 35:
                 if error_msg in driver.page_source:
                     return "DIE"
                 
