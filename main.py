@@ -13,8 +13,8 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # Configurações
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://yyqvpykqoqiygdinbcbj.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5cXZweWtxb3FpeWdkaW5iY2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDQyNDIsImV4cCI6MjA4Nzk4MDI0Mn0.zfTy2x0mrj3j2TpMhKCz-P8QdnL3bw-V9zWKfwtQpYc")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://pvjsshqcpnnugfnefgsi.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2anNzaHFjcG5udWdmbmVmZ3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMTE5NTgsImV4cCI6MjA5MzY4Nzk1OH0.H7d1xWhfyGjlHdKz8QQfJG3F5RGM6tSrrmzS0UC1_7s")
 MISTICPAY_CLIENT_ID = os.environ.get("MISTICPAY_CLIENT_ID", "ci_libdweclsjyry50")
 MISTICPAY_CLIENT_SECRET = os.environ.get("MISTICPAY_CLIENT_SECRET", "cs_kknlfy76fe2ir4nqjydf8ebee")
 MISTICPAY_API_URL = "https://api.misticpay.com/api"
