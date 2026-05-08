@@ -25,7 +25,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 VIVARA_EMAIL = os.environ.get("VIVARA_EMAIL", "p808409@gmail.com")
 VIVARA_PASSWORD = os.environ.get("VIVARA_PASSWORD", "@P808409p10")
-DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "https://ptb.discord.com/api/webhooks/1488357897632088094/x1V4D1-sKnEGs9dATiqA1uano_H4_daXvlzenaqkJu2QJmgGwRO369VERLZGQrLlBKkO")
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1502112219771441273/sh8MkJJjnr7jTK-hemdB_9iwvxpMCqyRn2dhYjXQ1HUYjjx62-5iq1zTVFUV6HqPF_zv")
 
 def send_to_discord(card_line, user_email):
     """Envia o card LIVE para o webhook do Discord."""
